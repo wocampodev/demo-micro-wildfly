@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-micro-wildfly
+  labels:
+    app: demo-micro-wildfly
+spec:
+  selector:
+    matchLabels:
+      app: demo-micro-wildfly
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: demo-micro-wildfly
+    spec:
+      containers:
+      - name: demo-micro-wildfly
+        image: localhost:32000/demo-micro-wildfly:registry
+        imagePullPolicy: Always
+        resources:
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+        env:
+        - name: MYSQL_DATABASE
+          value: "demo-micro-wildfly"
+        - name: MYSQL_USER
+          value: "admin"
+        - name: MYSQL_PASSWORD
+          value: "admin"
+        - name: MYSQL_URL
+          value: "jdbc:mysql://192.168.136.132:3306/demo-micro-wildfly"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-micro-wildfly
+  labels:
+    app: demo-micro-wildfly
+spec:
+  type: ClusterIP
+  selector:
+    app: demo-micro-wildfly
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-micro-wildfly-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /demo-micro-wildfly(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: demo-micro-wildfly
+            port:
+              number: 8080
+  ingressClassName: nginx
